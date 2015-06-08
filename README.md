@@ -18,7 +18,7 @@ This package depends on [garyburd/redigo](https://github.com/garyburd/redigo).
 
 ## Example
 
-In the example below, we create a new limiter. We'll be counting the total number of requests, limiting the total to 5 within 1 minute. We'll be syncing with the Redis counter every 5 minutes.
+In the example below, we create a new limiter. We'll be counting the total number of requests, limiting the total to 5 within 1 minute. We'll be syncing with the Redis counter every 5 seconds.
 
 ```go
 package main
