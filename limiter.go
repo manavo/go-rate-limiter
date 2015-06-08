@@ -71,6 +71,9 @@ func (rl *RateLimiter) Flush() {
 	reply, redisErr := redis.Values(redisConn.Do("EXEC"))
 
 	if redisErr != nil {
+		// Could not increment, so restore the current count
+		rl.currentCount += flushCount
+
 		log.Printf("Error executing Redis commands: %v", redisErr)
 		return
 	}
@@ -102,8 +105,8 @@ func (rl *RateLimiter) IsOverLimit() bool {
 
 // Init starts the ticker, which takes care of periodically flushing/syncing the counter
 func (rl *RateLimiter) Init() error {
-	if rl.Interval < time.Hour {
-		return fmt.Errorf("Minimum interval is 1 hour")
+	if rl.Interval < time.Minute {
+		return fmt.Errorf("Minimum interval is 1 minute")
 	}
 
 	rl.updateCurrentKey()
