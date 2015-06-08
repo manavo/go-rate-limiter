@@ -14,7 +14,7 @@ You also specify a "flush interval", when the library will increment the Redis c
 
 ## Dependencies
 
-This package depends on [garyburd/redigo](https://github.com/garyburd/redigo/redis).
+This package depends on [garyburd/redigo](https://github.com/garyburd/redigo).
 
 ## Example
 
