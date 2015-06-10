@@ -38,7 +38,7 @@ func New(redisPool *redis.Pool, baseKey string, limit uint64, interval time.Dura
 		Interval:      interval,
 		FlushInterval: flushInterval,
 
-		MultiSupport: false,
+		MultiSupport: true,
 	}
 
 	return rl
