@@ -67,8 +67,6 @@ func (rl *RateLimiter) Flush() {
 
 	flushCount, rl.currentCount = rl.currentCount, 0
 
-	log.Printf("Increment by %d", flushCount)
-
 	// send to redis, and get the updated value
 	redisConn := rl.RedisPool.Get()
 
@@ -111,8 +109,6 @@ func (rl *RateLimiter) Flush() {
 			log.Printf("Error calling EXPIRE command: %v", expireErr)
 		}
 	}
-
-	log.Printf("New synced count: %d", newSyncedCount)
 
 	rl.syncedCount = newSyncedCount
 }
