@@ -17,6 +17,9 @@ type RateLimiter struct {
 	Interval      time.Duration
 	FlushInterval time.Duration
 
+	// Just in case we can't use multi (for example: https://github.com/twitter/twemproxy/blob/master/notes/redis.md)
+	MultiSupport bool
+
 	syncedCount  uint64
 	currentCount uint64
 	currentKey   string
@@ -34,6 +37,8 @@ func New(redisPool *redis.Pool, baseKey string, limit uint64, interval time.Dura
 		BaseKey:       baseKey,
 		Interval:      interval,
 		FlushInterval: flushInterval,
+
+		MultiSupport: false,
 	}
 
 	return rl
@@ -62,26 +67,49 @@ func (rl *RateLimiter) Flush() {
 
 	flushCount, rl.currentCount = rl.currentCount, 0
 
+	log.Printf("Increment by %d", flushCount)
+
 	// send to redis, and get the updated value
 	redisConn := rl.RedisPool.Get()
 
-	redisConn.Send("MULTI")
-	redisConn.Send("INCRBY", rl.currentKey, flushCount)
-	redisConn.Send("EXPIRE", rl.currentKey, rl.Interval.Seconds())
-	reply, redisErr := redis.Values(redisConn.Do("EXEC"))
-
-	if redisErr != nil {
-		// Could not increment, so restore the current count
-		rl.currentCount += flushCount
-
-		log.Printf("Error executing Redis commands: %v", redisErr)
-		return
-	}
-
 	var newSyncedCount uint64
-	if _, scanErr := redis.Scan(reply, &newSyncedCount); scanErr != nil {
-		log.Printf("Error reading new synced count: %v", scanErr)
-		return
+
+	// Just in case we can't use multi (for example: https://github.com/twitter/twemproxy/blob/master/notes/redis.md)
+	if rl.MultiSupport == true {
+		redisConn.Send("MULTI")
+		redisConn.Send("INCRBY", rl.currentKey, flushCount)
+		redisConn.Send("EXPIRE", rl.currentKey, rl.Interval.Seconds())
+		reply, redisErr := redis.Values(redisConn.Do("EXEC"))
+
+		if redisErr != nil {
+			// Could not increment, so restore the current count
+			rl.currentCount += flushCount
+
+			log.Printf("Error executing Redis commands: %v", redisErr)
+			return
+		}
+
+		if _, scanErr := redis.Scan(reply, &newSyncedCount); scanErr != nil {
+			log.Printf("Error reading new synced count: %v", scanErr)
+			return
+		}
+	} else {
+		reply, incrErr := redis.Uint64(redisConn.Do("INCRBY", rl.currentKey, flushCount))
+
+		if incrErr != nil {
+			// Could not increment, so restore the current count
+			rl.currentCount += flushCount
+
+			log.Printf("Error executing Redis commands: %v", incrErr)
+			return
+		}
+
+		newSyncedCount = reply
+
+		_, expireErr := redisConn.Do("EXPIRE", rl.currentKey, rl.Interval.Seconds())
+		if expireErr != nil {
+			log.Printf("Error calling EXPIRE command: %v", expireErr)
+		}
 	}
 
 	log.Printf("New synced count: %d", newSyncedCount)
