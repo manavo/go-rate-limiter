@@ -69,6 +69,9 @@ func (rl *RateLimiter) Flush() {
 
 	// send to redis, and get the updated value
 	redisConn := rl.RedisPool.Get()
+	
+	// We have to close the connection ourselves when we're done
+	defer redisConn.Close()
 
 	var newSyncedCount uint64
 
