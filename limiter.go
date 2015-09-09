@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"sync/atomic"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -63,9 +64,7 @@ func (rl *RateLimiter) Stop() {
 
 // Flush increments the counter in Redis, and saves the new total value
 func (rl *RateLimiter) Flush() {
-	var flushCount uint64
-
-	flushCount, rl.currentCount = rl.currentCount, 0
+	flushCount := atomic.SwapUint64(&rl.currentCount, 0)
 
 	// send to redis, and get the updated value
 	redisConn := rl.RedisPool.Get()
@@ -84,7 +83,7 @@ func (rl *RateLimiter) Flush() {
 
 		if redisErr != nil {
 			// Could not increment, so restore the current count
-			rl.currentCount += flushCount
+			atomic.AddUint64(&rl.currentCount, flushCount)
 
 			log.Printf("Error executing Redis commands: %v", redisErr)
 			return
@@ -99,7 +98,7 @@ func (rl *RateLimiter) Flush() {
 
 		if incrErr != nil {
 			// Could not increment, so restore the current count
-			rl.currentCount += flushCount
+			atomic.AddUint64(&rl.currentCount, flushCount)
 
 			log.Printf("Error executing Redis commands: %v", incrErr)
 			return
@@ -118,7 +117,7 @@ func (rl *RateLimiter) Flush() {
 
 // Increment adds 1 to the local counter (doesn't get synced until Flush gets called)
 func (rl *RateLimiter) Increment() {
-	rl.currentCount++
+	atomic.AddUint64(&rl.currentCount, 1)
 }
 
 // IsOverLimit checks if we are over the limit we have set
