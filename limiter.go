@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
+	"github.com/gomodule/redigo/redis"
 )
 
 type RateLimiter struct {
@@ -68,7 +68,7 @@ func (rl *RateLimiter) Flush() {
 
 	// send to redis, and get the updated value
 	redisConn := rl.RedisPool.Get()
-	
+
 	// We have to close the connection ourselves when we're done
 	defer redisConn.Close()
 

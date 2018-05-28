@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/garyburd/redigo/redis"
-	"github.com/manavo/go-rate-limiter"
+	"github.com/gomodule/redigo/redis"
+	"github.com/kamushadenes/go-rate-limiter"
 )
 
 type requestObject struct {
