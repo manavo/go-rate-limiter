@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/gomodule/redigo/redis"
-	"github.com/kamushadenes/go-rate-limiter"
+	"github.com/manavo/go-rate-limiter"
 )
 
 type requestObject struct {
